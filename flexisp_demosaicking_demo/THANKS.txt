@@ -1,0 +1,9 @@
+Special Thanks
+---------------
+1. Gabriel Peyre: https://www.ceremade.dauphine.fr/~peyre/numerical-tour/tours/
+His numerical tour of image processing is a great resource. Some of our Matlab routine is directly derived from his Matlab script
+
+2. Alessandro Foi: http://www.cs.tut.fi/~foi/
+We use LASIP toolbox for noise variance estimation, and noise model calibration.
+Our framework also greatly depends on his BM3D script.
+

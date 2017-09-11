@@ -1,0 +1,137 @@
+#!/usr/bin/env python
+# MIT License
+#
+# Deep Joint Demosaicking and Denoising
+# Siggraph Asia 2016
+# Michael Gharbi, Gaurav Chaurasia, Sylvain Paris, Fredo Durand
+# 
+# Copyright (c) 2016 Michael Gharbi
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+"""Utility to create the protoxt files for a demosaicking network."""
+
+import argparse
+import os
+
+import demosaicnet.models as models
+
+def main(args):
+    if not os.path.exists(args.output):
+        os.makedirs(args.output)
+    snapshot_dir = os.path.join(args.output, 'snapshots')
+    if not os.path.exists(snapshot_dir):
+        os.makedirs(snapshot_dir)
+    log_dir = os.path.join(args.output, 'log')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
+    train_net = models.demosaic(
+            args.depth, args.width, args.kernel_size, args.batch_size,
+            non_linearity=args.non_linearity,
+            trainset=args.train_db,
+            train_mode=True,
+            mosaic_type=args.mosaic_type,
+            min_noise=0, max_noise=args.max_noise, pad=args.pad,
+            batch_norm=args.batch_norm)
+    test_net = models.demosaic(
+            args.depth, args.width, args.kernel_size, args.batch_size,
+            non_linearity=args.non_linearity,
+            trainset=args.test_db,
+            train_mode=False,
+            mosaic_type=args.mosaic_type,
+            min_noise=0, max_noise=args.max_noise, pad=args.pad,
+            batch_norm=args.batch_norm)
+    deploy_net = models.demosaic(
+            args.depth, args.width, args.kernel_size, args.batch_size,
+            non_linearity=args.non_linearity,
+            trainset=None,
+            train_mode=False,
+            mosaic_type=args.mosaic_type,
+            min_noise=0, max_noise=args.max_noise, pad=args.pad,
+            batch_norm=args.batch_norm)
+    with open(os.path.join(args.output, 'train.prototxt'), 'w') as W:
+      W.write('%s\n' % train_net.to_proto())
+    with open(os.path.join(args.output, 'test.prototxt'), 'w') as W:
+      W.write('%s\n' % test_net.to_proto())
+    with open(os.path.join(args.output, 'deploy.prototxt'), 'w') as W:
+      W.write('%s\n' % deploy_net.to_proto())
+
+    with open(os.path.join(args.output, 'solver.prototxt'), 'w') as W:
+      W.write("""# The train net protocol buffer definition
+net: "{output}/train.prototxt"
+test_net: "{output}/test.prototxt"
+
+# Solver parameters
+type: "Adam"
+delta: 1e-8
+momentum: 0.9
+momentum2: 0.999
+lr_policy: "fixed"
+base_lr: {learning_rate}
+
+# Regularization
+regularization_type:"L2"
+weight_decay: 1e-08
+
+# Accumulate gradients over batch_size*iter_size
+iter_size: {iter_size}
+
+# Display every x iterations
+display: 100
+average_loss: 10000
+
+# The maximum number of iterations
+max_iter: 10000000
+
+# Test
+test_iter: 16
+test_interval: 10000
+
+# Snapshot intermediate results
+snapshot: 10000
+snapshot_prefix: "{snapshot}/"
+solver_mode: GPU""".format(output=args.output,
+                           snapshot=snapshot_dir,
+                           learning_rate=args.learning_rate,
+                           iter_size=args.iter_size))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--train_db', type=str, default='data/db_train', help='path to the lmdb database with training images.')
+    parser.add_argument('--test_db', type=str, default='data/db_val', help='path to the lmdb database with validation images.')
+    parser.add_argument('--output', type=str, default='new_model', help='directory for the model output.')
+    parser.add_argument('--batch_size', type=int, default=64, help='samples per batch.')
+    parser.add_argument('--iter_size', type=int, default=1, help='number of forward/backward propagations for one update (use to extend the batch_size).')
+    parser.add_argument('--learning_rate', type=float, default=1e-4, help='step stize for the optimizer.')
+    parser.add_argument('--depth', type=int, default=15, help='number of convolutional layers.')
+    parser.add_argument('--width', type=int, default=64, help='number of feature maps per layer.')
+    parser.add_argument('--kernel_size', type=int, default=3, help='size of the kernel for each convolution.')
+    parser.add_argument('--non_linearity', default='relu', help='type of non-linear activation function.', choices=['relu', 'tanh'])
+    parser.add_argument('--max_noise', type=float, default=0.0, help='max standard deviation of the Gaussian noise added to the images.')
+    parser.add_argument('--pad', action='store_true', help='pad the input of each convolution so the image size does not decrease with depth.')
+    parser.add_argument('--no-pad', dest='pad', action='store_false', help='do not pad feature maps before convolution.')
+    parser.set_defaults(pad=False)
+    parser.add_argument('--mosaic_type', type=str, default='bayer', choices=['bayer', 'xtrans'], help='type of mosaick (xtrans or bayer)')
+    parser.add_argument('--batch_norm', action='store_true', help='adds a batch normalization layer.')
+    parser.set_defaults(batch_norm=False)
+
+    args = parser.parse_args()
+
+    main(args)
