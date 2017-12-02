@@ -18,7 +18,7 @@ Note that we slightly modified I/O code (mainly redirecting input and output pat
 | demosaicnet | DeepJoint[\[2\]][2] code. |
 | flexisp\_demosaicking\_demo | FlexISP[\[3\]][3] code. |
 | res | Results. |
-| utils | Code nedded for PSNR computation and Bayer mask computation. |
+| utils | Code needed for PSNR computation and Bayer mask computation. |
 | wrappers | Wrappers for comparative algorithms |
 
 
@@ -72,7 +72,7 @@ If you use the code in your work, please cite our paper:
   title={Joint Demosaicing and Denoising of noisy Bayer Images with ADMM},
   author={Tan, Hanlin and Zeng, Xiangrong and Lai, Shiming and Liu, Yu and Zhang, Maojun},
   booktitle={Image Processing (ICIP), 2017 IEEE International Conference on},
-  pages={xxx--xxx}, % Not available now
+  pages={2951--2955},
   year={2017},
   organization={IEEE}
 }
