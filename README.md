@@ -29,8 +29,8 @@ In summary, useful entrance files are:
 
 | File Name | Explanation |
 |:-:|:-:|
-| `compareAlgorithms.m` | The entrance file. Run this file with Matlab and the results are stored in `compareResults.mat` in the current directory. |
-| `analyze.m` | Produce figures and tables of results. This file is called automatically by `compareAlgorithms.m`. Results will be saved in the current directory. |
+| `compareAlgorithms.m` | The entrance file. Run this file with Matlab and the results are stored in `compareResults.mat` in `res/{dataset}` folder. |
+| `analyze.m` | Produce figures and tables of results. This file is called automatically by `compareAlgorithms.m`. Results will be saved in `res/{dataset}` folder. |
 | `combineResultImages.m` | Reproduce figures of visual results using data in `res` folder. |
 
 
